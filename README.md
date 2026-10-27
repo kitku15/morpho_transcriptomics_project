@@ -1,4 +1,4 @@
-# Gene Expression Prediction of Cortical Motor Neuron Morphology
+# Predicting Cortical Neuron Morphology from Single-Cell Gene Expression
 
 This repository contains a reproducible Python pipeline addressing the technical interview task: predicting motor neuron morphology from Patch-seq transcriptomics (Scala et al., 2021). 
 
