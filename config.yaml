@@ -1,0 +1,43 @@
+# ===================================================================
+# MORPHO-TRANSCRIPTOMIC PIPELINE CONFIGURATION
+# ===================================================================
+
+general:
+  random_seed: 150504
+  output_base_dir: "results"
+
+data:
+  morph_feat_path: "data/m1_patchseq_morph_features.csv"
+  morph_z_path: "data/m1_patchseq_morph_zprofiles.csv"
+  expr_exon_path: "data/m1_patchseq_exon_counts.csv"
+  expr_intron_path: "data/m1_patchseq_intron_counts.csv"
+  meta_path: "data/m1_patchseq_meta_data.csv"
+
+preprocessing:
+  cmin: 32                    # Scala et al. (2021) count threshold
+  min_cells: 10               # Scala et al. (2021) expression threshold
+  target_sum: 10000
+  confidence_threshold: 0.70  # Subclass alignment confidence filter
+
+experiments:
+  n_hvgs: 1000
+  lineages: ['exc', 'inh']
+
+modeling:
+  n_cv_splits: 5
+  n_permutations: 1000
+  
+  xgb_params:
+    n_estimators: 150
+    learning_rate: 0.08
+    max_depth: 3
+    subsample: 0.8
+    colsample_bytree: 0.8
+    n_jobs: -1
+
+  enet_params:
+    alpha: 0.1
+    l1_ratio: 0.5
+
+interpretation:
+  shap_z_thresh: 2.0          # SHAP validation threshold for downstream GO pathways
