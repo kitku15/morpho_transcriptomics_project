@@ -120,6 +120,18 @@ def main() -> None:
                 title=f"[{lin_name.upper()}] Feature-to-Gene Correlation Heatmap: {sub_folder.upper()}", 
                 save_path=os.path.join(plots_dir, "06_feature_gene_heatmap.png")
             )
+            
+            if len(res['top_genes']) > 0:
+                viz.plot_intra_class_gradient(
+                    expr_norm=X,
+                    morph_pc1=pd.Series(y_target, index=X.index),
+                    meta_df=meta,
+                    lineage=lineage,
+                    target_gene=res['top_genes'][0],
+                    conf_thresh=config['preprocessing']['confidence_threshold'],
+                    title=f"[{lin_name.upper()}] Morpho-Transcriptomic Gradient: {res['top_genes'][0]}",
+                    save_path=os.path.join(plots_dir, "07_intra_class_gradient.png")
+                )
 
             gsea_res = run_preranked_gsea(X, res['shap_vals'], y_target, logger)
             if gsea_res is not None:

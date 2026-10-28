@@ -9,11 +9,12 @@ import gseapy as gp
 from sklearn.model_selection import GroupKFold
 from sklearn.metrics import r2_score
 from sklearn.linear_model import ElasticNet
+from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed
 from scipy import stats
 from scipy.stats import ttest_rel
 
-def _run_single_permutation(seed_idx: int, X_arr: np.ndarray, y_target: np.ndarray, splits: List) -> float:
+def _run_single_permutation(seed_idx: int, X_arr: np.ndarray, y_target: np.ndarray, splits: List, xgb_params: dict) -> float:
     """Worker function for parallel empirical permutation testing.
     
     Args:
@@ -21,6 +22,7 @@ def _run_single_permutation(seed_idx: int, X_arr: np.ndarray, y_target: np.ndarr
         X_arr (np.ndarray): Feature array.
         y_target (np.ndarray): True target array to be shuffled.
         splits (List): Pre-computed GroupKFold splits.
+        xgb_params (dict): Configured XGBoost hyperparameters.
         
     Returns:
         float: Permuted out-of-fold R² score.
@@ -29,14 +31,12 @@ def _run_single_permutation(seed_idx: int, X_arr: np.ndarray, y_target: np.ndarr
     y_shuf = rng.permutation(y_target)
     oof_null = np.zeros(len(X_arr))
     
+    # Ensure we only use 1 thread per worker to avoid CPU oversubscription during Parallel execution
+    null_params = xgb_params.copy()
+    null_params['n_jobs'] = 1
+    
     for tr, va in splits:
-        m_null = xgb.XGBRegressor(
-            n_estimators=50, 
-            max_depth=3, 
-            learning_rate=0.1, 
-            n_jobs=1,
-            random_state=seed_idx
-        )
+        m_null = xgb.XGBRegressor(**null_params, random_state=seed_idx)
         m_null.fit(X_arr[tr], y_shuf[tr])
         oof_null[va] = m_null.predict(X_arr[va])
         
@@ -83,7 +83,9 @@ def run_evaluation(
         X_train, X_val = X.iloc[train_idx].copy(), X.iloc[val_idx].copy()
         y_train, y_val = y_target[train_idx], y_target[val_idx]
         
-        model_xgb = xgb.XGBRegressor(**xgb_params)
+        random_seed = config['general']['random_seed']
+        
+        model_xgb = xgb.XGBRegressor(**xgb_params, random_state=random_seed)
         model_xgb.fit(X_train, y_train)
         preds_xgb = model_xgb.predict(X_val)
         oof_preds_xgb[val_idx] = preds_xgb
@@ -119,7 +121,7 @@ def run_evaluation(
     splits = list(gkf.split(X_arr, groups=groups))
     
     null_r2s = Parallel(n_jobs=-1)(
-        delayed(_run_single_permutation)(i, X_arr, y_target, splits) 
+        delayed(_run_single_permutation)(i, X_arr, y_target, splits, xgb_params) 
         for i in range(n_perm)
     )
 
