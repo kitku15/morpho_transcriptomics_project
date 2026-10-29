@@ -159,7 +159,10 @@ def build_independent_targets(
     }
     
     loadings_pc1 = pd.DataFrame({'Feature': feat_scaled.columns, 'Loading': pca_feat.components_[0]})
+    loadings_pc1 = loadings_pc1.reindex(loadings_pc1['Loading'].abs().sort_values(ascending=False).index)
+
     loadings_pc2 = pd.DataFrame({'Feature': feat_scaled.columns, 'Loading': pca_feat.components_[1]})
+    loadings_pc2 = loadings_pc2.reindex(loadings_pc2['Loading'].abs().sort_values(ascending=False).index)
     
     return targets, loadings_pc1, loadings_pc2, pca_feat.explained_variance_ratio_
 

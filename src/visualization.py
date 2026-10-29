@@ -124,7 +124,8 @@ def plot_qc_suite(
 def plot_pca_loadings(loadings: pd.DataFrame, title: str, save_path: str) -> None:
     """Visualizes the top ten features defining a principal component."""
     plt.figure(figsize=(9, 4.5))
-    sns.barplot(data=loadings.head(10), x='Loading', y='Feature', hue='Feature', palette='coolwarm', legend=False)
+    top_loadings = loadings.reindex(loadings['Loading'].abs().sort_values(ascending=False).index).head(10)
+    sns.barplot(data=top_loadings, x='Loading', y='Feature', hue='Feature', palette='coolwarm', legend=False)
     plt.title(title)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
@@ -216,6 +217,19 @@ def plot_shap_dependence(
     """Creates subclass-stratified SHAP dependence plots revealing biological activation thresholds."""
     if target_gene not in X.columns:
         return
+
+    plt.figure(figsize=(7, 5))
+    shap.dependence_plot(
+        ind=target_gene,
+        shap_values=shap_values.loc[X.index].values,
+        features=X,
+        interaction_index=interaction_gene if interaction_gene in X.columns else 'auto',
+        show=False
+    )
+    plt.title(f"[{lineage.upper()} | GLOBAL] Activation Threshold: {target_gene}", pad=15)
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, f"04c_threshold_{target_gene}_GLOBAL.png"), dpi=300, bbox_inches='tight')
+    plt.close()
         
     families = meta_df.loc[X.index, 'RNA family']
 
@@ -365,7 +379,7 @@ def plot_feature_gene_heatmap(
             r_val = corr_mat[i, j]
             q_val = q_mat[i, j]
             stars = "***" if q_val < 0.001 else "**" if q_val < 0.01 else "*" if q_val < 0.05 else ""
-            annot_mat[i, j] = f"{r_val:+.2f}{stars}"
+            annot_mat[i, j] = f"{r_val:+.2f}"
 
     clean_row_labels = [_clean_feature_name(f) for f in valid_feats]
     df_corr = pd.DataFrame(corr_mat, index=clean_row_labels, columns=valid_genes)
@@ -384,7 +398,7 @@ def plot_feature_gene_heatmap(
         linecolor='#ECEFF1',
         cbar_kws={'label': 'Spearman Correlation (r)', 'shrink': 0.8}
     )
-    plt.title(f"{title}\n(Significance: *FDR q < 0.05, **q < 0.01, ***q < 0.001)", pad=15, fontsize=12, fontweight='bold')
+    plt.title(title, pad=15, fontsize=12, fontweight='bold')
     plt.xticks(rotation=45, ha='right', fontsize=10)
     plt.yticks(rotation=0, fontsize=10)
     plt.tight_layout()
