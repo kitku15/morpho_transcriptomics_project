@@ -125,7 +125,7 @@ def plot_pca_loadings(loadings: pd.DataFrame, title: str, save_path: str) -> Non
     """Visualizes the top ten features defining a principal component."""
     plt.figure(figsize=(9, 4.5))
     top_loadings = loadings.reindex(loadings['Loading'].abs().sort_values(ascending=False).index).head(10)
-    sns.barplot(data=top_loadings, x='Loading', y='Feature', hue='Feature', palette='coolwarm', legend=False)
+    sns.barplot(data=top_loadings, x='Loading', y='Feature', color="steelblue", legend=False)
     plt.title(title)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
@@ -261,7 +261,7 @@ def plot_linear_coefficients(coef_df: pd.DataFrame, title: str, save_path: str) 
     top_coefs = top_coefs.sort_values(by='Coefficient')
     
     plt.figure(figsize=(8, 6))
-    sns.barplot(data=top_coefs, x='Coefficient', y='Gene', hue='Gene', palette='coolwarm', legend=False)
+    sns.barplot(data=top_coefs, x='Coefficient', y='Gene', color="steelblue", legend=False)
     plt.title(title, pad=15)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
@@ -365,9 +365,9 @@ def plot_feature_gene_heatmap(
     
     for i, f in enumerate(valid_feats):
         for j, g in enumerate(valid_genes):
-            r, p = spearmanr(morph_feat.loc[X.index, f], X[g])
-            corr_mat[i, j] = r
-            raw_p_mat[i, j] = p
+            r, p = spearmanr(morph_feat.loc[X.index, f].fillna(0), X[g])
+            corr_mat[i, j] = np.nan_to_num(r, nan=0.0)
+            raw_p_mat[i, j] = np.nan_to_num(p, nan=1.0)
 
     flat_p = raw_p_mat.flatten()
     flat_q = _benjamini_hochberg(flat_p)
@@ -384,25 +384,26 @@ def plot_feature_gene_heatmap(
     clean_row_labels = [_clean_feature_name(f) for f in valid_feats]
     df_corr = pd.DataFrame(corr_mat, index=clean_row_labels, columns=valid_genes)
 
-    plt.figure(figsize=(10, 7.5))
-    sns.heatmap(
-        df_corr, 
-        annot=annot_mat, 
-        fmt='', 
-        cmap='vlag', 
-        center=0, 
-        vmin=-0.6, 
-        vmax=0.6, 
+    g = sns.clustermap(
+        df_corr,
+        annot=annot_mat,
+        fmt='',
+        cmap='vlag',
+        center=0,
+        vmin=-0.6,
+        vmax=0.6,
+        figsize=(10, 8),
+        cbar=False, 
+        dendrogram_ratio=(0.12, 0.15),
         annot_kws={'fontsize': 9, 'weight': 'bold'},
-        linewidths=0.5, 
+        linewidths=0.5,
         linecolor='#ECEFF1',
-        cbar_kws={'label': 'Spearman Correlation (r)', 'shrink': 0.8}
+        cbar_kws={'label': 'Spearman Correlation (r)'}
     )
-    plt.title(title, pad=15, fontsize=12, fontweight='bold')
-    plt.xticks(rotation=45, ha='right', fontsize=10)
-    plt.yticks(rotation=0, fontsize=10)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=45, ha='right', fontsize=10)
+    g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), rotation=0, fontsize=10)
+    g.fig.suptitle(title, y=1.02, fontsize=12, fontweight='bold')
+    g.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
 def _render_gsea_bar(df_subset: pd.DataFrame, color: str, title: str, save_path: str) -> None:
