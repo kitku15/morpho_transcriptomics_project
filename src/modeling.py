@@ -101,7 +101,8 @@ def run_evaluation(
         explainer = shap.TreeExplainer(model_xgb)
         shap_list.append(pd.DataFrame(explainer.shap_values(X_val), columns=X_val.columns, index=X_val.index))
         
-    oof_shap = pd.concat(shap_list).sort_index()
+    # oof_shap = pd.concat(shap_list).sort_index()
+    oof_shap = pd.concat(shap_list).loc[X.index]
     r2_xgb = r2_score(y_target, oof_preds_xgb)
     r2_enet = r2_score(y_target, oof_preds_linear)
     
